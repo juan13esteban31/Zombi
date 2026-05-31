@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zomboid Alpha 2.2</title>
+<style>
+body{margin:0;overflow:hidden;background:#111;font-family:Arial}
+canvas{display:block;width:100vw;height:100vh;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="g"></canvas>
+<script>
+const c=document.getElementById("g"),x=c.getContext("2d");
+function rs(){c.width=innerWidth;c.height=innerHeight} rs(); onresize=rs;
+
+let p={x:500,y:500,hp:100,food:100,water:100};
+let inv={food:0,water:0,open:false};
+let j={x:90,y:innerHeight-100,dx:0,dy:0};
+let attack=false;
+
+let zombies=[...Array(18)].map(()=>({x:Math.random()*2200,y:Math.random()*2200,hp:3}));
+let trees=[...Array(90)].map(()=>({x:Math.random()*2400,y:Math.random()*2400}));
+let loot=[...Array(20)].map(()=>({x:Math.random()*2200,y:Math.random()*2200,t:Math.random()>.5?"food":"water"}));
+let houses=[
+{x:700,y:700,w:180,h:140},
+{x:1100,y:900,w:180,h:140},
+{x:1500,y:600,w:180,h:140},
+{x:850,y:1400,w:180,h:140}
+];
+
+function touch(e){
+ let t=e.touches[0]; if(!t)return;
+ let dx=t.clientX-j.x,dy=t.clientY-j.y,d=Math.hypot(dx,dy)||1,m=Math.min(45,d);
+ j.dx=dx/d*m; j.dy=dy/d*m;
+}
+c.addEventListener("touchstart",touch);
+c.addEventListener("touchmove",touch);
+c.addEventListener("touchend",()=>{j.dx=0;j.dy=0});
+
+c.addEventListener("click",(e)=>{
+ let ax=c.width-70, ay=c.height-90;
+ if(Math.hypot(e.clientX-ax,e.clientY-ay)<40) attack=true;
+ if(e.clientX>c.width-120 && e.clientY<60) inv.open=!inv.open;
+});
+
+function draw(){
+ requestAnimationFrame(draw);
+
+ p.x+=j.dx*0.16; p.y+=j.dy*0.16;
+ p.food=Math.max(0,p.food-0.002);
+ p.water=Math.max(0,p.water-0.003);
+
+ let cx=p.x-c.width/2, cy=p.y-c.height/2;
+
+ x.fillStyle="#4e7f3a";
+ x.fillRect(0,0,c.width,c.height);
+
+ x.fillStyle="#666";
+ x.fillRect(-cx+1000,-cy,180,2600);
+ x.fillRect(-cx,-cy+1200,2600,160);
+
+ houses.forEach(h=>{
+   x.fillStyle="#d7c39a";
+   x.fillRect(h.x-cx,h.y-cy,h.w,h.h);
+   x.fillStyle="#704214";
+   x.fillRect(h.x-cx+h.w/2-10,h.y-cy+h.h-25,20,25);
+ });
+
+ trees.forEach(t=>{
+   x.fillStyle="#2ea043";
+   x.beginPath();
+   x.arc(t.x-cx,t.y-cy,16,0,7);
+   x.fill();
+ });
+
+ loot.forEach((l,i)=>{
+   if(Math.hypot(p.x-l.x,p.y-l.y)<25){
+      if(l.t=="food") inv.food++;
+      else inv.water++;
+      loot.splice(i,1);
+   }else{
+      x.fillStyle=l.t=="food"?"orange":"cyan";
+      x.fillRect(l.x-cx-6,l.y-cy-6,12,12);
+   }
+ });
+
+ zombies=zombies.filter(z=>z.hp>0);
+ zombies.forEach(z=>{
+   let dx=p.x-z.x,dy=p.y-z.y,d=Math.hypot(dx,dy)||1;
+   z.x+=dx/d*0.4; z.y+=dy/d*0.4;
+   if(d<30)p.hp-=0.03;
+   if(attack && d<70) z.hp--;
+   x.fillStyle="#b22222";
+   x.fillRect(z.x-cx-10,z.y-cy-10,20,20);
+ });
+ attack=false;
+
+ x.fillStyle="#3aa0ff";
+ x.fillRect(c.width/2-10,c.height/2-10,20,20);
+
+ x.fillStyle="white";
+ x.fillText("HP "+(p.hp|0),10,20);
+ x.fillText("Comida "+(p.food|0),10,40);
+ x.fillText("Agua "+(p.water|0),10,60);
+
+ x.fillStyle="#333";
+ x.fillRect(c.width-120,10,110,40);
+ x.fillStyle="white";
+ x.fillText("INV",c.width-85,35);
+
+ x.beginPath();
+ x.arc(c.width-70,c.height-90,35,0,7);
+ x.fillStyle="#aa2222";
+ x.fill();
+ x.fillStyle="white";
+ x.fillText("ATK",c.width-82,c.height-85);
+
+ x.beginPath();
+ x.arc(j.x,j.y,50,0,7);
+ x.strokeStyle="white";
+ x.stroke();
+ x.beginPath();
+ x.arc(j.x+j.dx,j.y+j.dy,20,0,7);
+ x.fillStyle="white";
+ x.fill();
+
+ if(inv.open){
+   x.fillStyle="rgba(0,0,0,.8)";
+   x.fillRect(40,80,220,120);
+   x.fillStyle="white";
+   x.fillText("Inventario",60,105);
+   x.fillText("Comida: "+inv.food,60,135);
+   x.fillText("Agua: "+inv.water,60,165);
+ }
+}
+draw();
+</script>
+</body></html>
